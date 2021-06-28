@@ -7,7 +7,9 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 class Pickup(Base):
+
    __tablename__ = 'Pickup'
+
    pickup_id = Column(Integer, primary_key=True)
    date =Column(String)
    client_id = Column(Integer, ForeignKey('Client.client_id'))
@@ -15,13 +17,17 @@ class Pickup(Base):
    updated=Column(Boolean)
 
 class Client(Base):
+
    __tablename__='Client'
+
    client_id=Column(Integer, primary_key=True)
    name=Column(String)
    address=Column(String)
 
 class Predict(Base):
+
    __tablename__='Predict'
+
    predict_id=Column(Integer, primary_key=True)
    date=Column(String)
    product=Column(String)
@@ -29,7 +35,9 @@ class Predict(Base):
    city_state=Column(String)
 
 class Summary(Base):
+
    __tablename__='Summary'
+
    summary_id=Column(Integer, primary_key=True)
    startDate=Column(String)
    numberPickups=Column(Integer)
