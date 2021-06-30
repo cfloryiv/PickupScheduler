@@ -1,9 +1,10 @@
 from busRules import ImportInputFiles, ProcessPickups, CreatePredictions, CreateExportFiles
-
+import os
 
 if __name__ == '__main__':
-
-    ImportInputFiles.run('Lussier Wholesale Pickups.csv')
+    importInputFiles=ImportInputFiles()
+    for file in os.scandir('C:\\users\\cflor\\BB\\inputFiles'):
+        importInputFiles.run(file.name)
 
     processPickups=ProcessPickups()
     processPickups.run()

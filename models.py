@@ -33,6 +33,9 @@ class Predict(Base):
    product=Column(String)
    client_id=Column(Integer, ForeignKey('Client.client_id'))
    city_state=Column(String)
+   days=Column(Integer)
+   numberDays=Column(Integer)
+   aveDays=Column(Integer)
 
 class Summary(Base):
 

@@ -1,10 +1,10 @@
 from models import engine, Session, Client, Pickup, Summary, Predict
-from datetime import date
+from datetime import date, timedelta
 import csv
 
 class ImportInputFiles():
 
-    def run(filename):
+    def run(self, filename):
 
         print('importing ', filename)
         count=0
@@ -18,7 +18,7 @@ class ImportInputFiles():
                     continue
                 if row[0]=='':
                     continue
-                print(row)
+                # print(row)
 
                 # create pickup record
 
@@ -41,7 +41,8 @@ class ImportInputFiles():
 
                 pickup=Pickup()
                 pickup.client_id=client_id
-                pickup.date=row[0]
+                datex=IconvDate(row[0])
+                pickup.date=datex.isoformat()
                 pickup.product=row[3]
                 pickup.updated=False
                 #
@@ -74,9 +75,11 @@ class ProcessPickups():
                     summary.lastProduct=pickup.product
 
                 summary.numberPickups+=1
-                if IconvDate(pickup.date)>=IconvDate(summary.lastDate):
+                if (pickup.date)>=(summary.lastDate):
                     summary.lastDate=pickup.date
                     summary.lastProduct=pickup.product
+                if (pickup.date)<(summary.startDate):
+                    summary.startDate=pickup.date
                 session.add(summary);
                 session.commit()
 
@@ -110,7 +113,16 @@ class CreatePredictions():
 
             startDate=IconvDate(summary.startDate)
             endDate=IconvDate(summary.lastDate)
-            days=(endDate-startDate)/summary.numberPickups
+            aveDays=(endDate-startDate)/summary.numberPickups
+            numberDays=endDate-startDate
+
+            # wait at least 21 days until the next pickup
+
+            minDays=timedelta(days=14)
+            if aveDays<minDays:
+                days=minDays
+            else:
+                days=aveDays
             predictDate=(endDate+days).isoformat()
 
             # create city_state variable
@@ -131,6 +143,9 @@ class CreatePredictions():
             predict.product=summary.lastProduct
             predict.client_id=client_id
             predict.city_state=city_state
+            predict.days=days.days
+            predict.numberDays=numberDays.days
+            predict.aveDays=aveDays.days
 
             session.add(predict)
             session.commit()
@@ -138,6 +153,8 @@ class CreatePredictions():
 def IconvDate(externalDate):
 
     dy = externalDate.split('/')
+    if len(dy)==1:
+        dy=externalDate.split('-')
 
     if len(dy[0])>2:
         endDate = date(int(dy[0]), int(dy[1]), int(dy[2]))
@@ -151,7 +168,7 @@ class CreateExportFiles():
     def run(self):
         filename='pickup.csv'
         with open(f'C:\\users\\cflor\\BB\\outputFiles\\{filename}', 'w', newline='') as csvfile:
-            fieldnames = ['date', 'name', 'address', 'product']
+            fieldnames = ['date', 'name', 'address', 'product', 'days', 'numberDays', 'aveDays']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             writer.writeheader()
@@ -178,5 +195,7 @@ class CreateExportFiles():
 
 
                 writer.writerow({'date': predict.date, 'name': name,
-                                 'address': address, 'product': predict.product})
+                                 'address': address, 'product': predict.product,
+                                 'days': predict.days, 'numberDays': predict.numberDays,
+                                 'aveDays': predict.aveDays})
             # create csv file
