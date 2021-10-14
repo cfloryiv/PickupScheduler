@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine, Column, String, Integer, DECIMAL, ForeignKey, Boolean
 from sqlalchemy.orm import session, sessionmaker
+import os
 
+os.remove('C:\\Users\\cflor\\BB\\Strips.db')
 engine = create_engine('sqlite:///C:\\Users\\cflor\\BB\\Strips.db', echo = False)
 Session = sessionmaker(bind=engine)
 from sqlalchemy.ext.declarative import declarative_base

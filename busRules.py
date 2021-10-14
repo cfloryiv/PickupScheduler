@@ -134,7 +134,7 @@ class CreatePredictions():
                 city=ay[len(ay)-1]
             else:
                 city=ax[1]
-            city_state=city+','+state
+            city_state=state+', '+city
 
         # create predict record
 
