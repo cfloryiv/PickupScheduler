@@ -1,6 +1,36 @@
-from models import engine, Session, Client, Pickup, Summary, Predict
+from models import engine, Session, Client, Pickup, Summary, Predict, ListMaint
 from datetime import date, timedelta
 import csv
+class ImportMergePurge():
+
+    def run(self):
+
+        print('importing mergePurge.csv')
+        count=0
+        with open(f'C:\\users\\cflor\\BB\\outputFiles\\mergePurge.csv') as file:
+
+            reader=csv.reader(file)
+            for row in reader:
+
+                count+=1
+                if count==1:
+                    continue
+                if row=='':
+                    continue
+
+                session=Session()
+
+                # lookup client record
+
+                listMaint=ListMaint()
+                listMaint.name=row[0]
+                listMaint.oldAddress=row[1]
+                listMaint.newAddress=row[2]
+                listMaint.action=row[3]
+                listMaint.newName=row[4]
+
+                session.add(listMaint)
+                session.commit()
 
 class ImportInputFiles():
 
@@ -29,21 +59,56 @@ class ImportInputFiles():
                 client=Client()
                 client.name=row[1]
                 client.address=row[2]
+
+                # perform list maintenance
+
+                lm_id=None
+                for lmx in session.query(ListMaint).filter(ListMaint.name==client.name, ListMaint.oldAddress==client.address):
+                    lm_id=lmx.lm_id
+
+                if lm_id==None:
+                    action=""
+                else:
+                    action=lmx.action
+                # drop this customer
+                if action=='purge':
+                    continue
+                if action=='coa':
+                    client.address=lmx.newAddress
+                    client.name=lmx.newName
                 #
                 client_id=None
-                for clientx in session.query(Client).filter(Client.name==client.name and Client.address==client.address):
+                for clientx in session.query(Client).filter(Client.name==client.name, Client.address==client.address):
                     client_id=clientx.client_id
 
                 if client_id==None:
                     session.add(client)
                     session.commit()
                     client_id=client.client_id
+                    session=Session()
 
                 pickup=Pickup()
                 pickup.client_id=client_id
                 datex=IconvDate(row[0])
                 pickup.date=datex.isoformat()
                 pickup.product=row[3]
+                if pickup.product !='strips':
+                    if pickup.product !='misc':
+                        pickup.product='undef'
+                try:
+                    pickup.dollars=row[4]
+                except:
+                    pickup.dollars=0
+                pickup.name=row[1]
+                pickup.address=client.address
+                ax = pickup.address.split(',')
+                state = ax[len(ax) - 1]
+                if len(ax) == 2:
+                    ay = ax[0].split(' ')
+                    city = ay[len(ay) - 1]
+                else:
+                    city = ax[1]
+                pickup.city_state = state + ', ' + city
                 pickup.updated=False
                 #
                 session.add(pickup);
@@ -168,7 +233,7 @@ class CreateExportFiles():
     def run(self):
         filename='pickup.csv'
         with open(f'C:\\users\\cflor\\BB\\outputFiles\\{filename}', 'w', newline='') as csvfile:
-            fieldnames = ['date', 'name', 'address', 'product', 'days', 'numberDays', 'aveDays']
+            fieldnames = ['date', 'name', 'address', 'product', 'days', 'p1', 'p2', 'p3', 'p4', 'p5']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             writer.writeheader()
@@ -180,10 +245,10 @@ class CreateExportFiles():
             last_city_state=''
 
 
-            for predict in session.query(Predict).order_by(Predict.city_state):
+            for predict in session.query(Predict).order_by(Predict.date):
 
                 if predict.city_state!=last_city_state:
-                    writer.writerow({'date': predict.city_state})
+#                    writer.writerow({'date': predict.city_state})
                     last_city_state=predict.city_state
 
                 name=''
@@ -193,9 +258,19 @@ class CreateExportFiles():
                     address=client.address
                     name=client.name
 
+                pickupDays=[]
+                for pickup in session.query(Pickup).filter(Pickup.client_id == predict.client_id).order_by(Pickup.date.desc()):
+                    pickupDays.append(pickup.date)
+                for d in range(6):
+                    pickupDays.append('-')
 
                 writer.writerow({'date': predict.date, 'name': name,
                                  'address': address, 'product': predict.product,
-                                 'days': predict.days, 'numberDays': predict.numberDays,
-                                 'aveDays': predict.aveDays})
+                                 'days': predict.days,
+                                 'p1': pickupDays[0],
+                                 'p2': pickupDays[1],
+                                 'p3': pickupDays[2],
+                                 'p4': pickupDays[3],
+                                 'p5': pickupDays[4]
+                                 })
             # create csv file

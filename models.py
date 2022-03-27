@@ -1,12 +1,27 @@
 from sqlalchemy import create_engine, Column, String, Integer, DECIMAL, ForeignKey, Boolean
 from sqlalchemy.orm import session, sessionmaker
 import os
+try:
+   os.remove('C:\\Users\\cflor\\BB\\Strips.db')
+except:
+   print('Database could not be found to be deleted')
 
-os.remove('C:\\Users\\cflor\\BB\\Strips.db')
 engine = create_engine('sqlite:///C:\\Users\\cflor\\BB\\Strips.db', echo = False)
 Session = sessionmaker(bind=engine)
 from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
+
+class ListMaint(Base):
+
+   __tablename__='ListMaint'
+
+   lm_id=Column(Integer, primary_key=True)
+   name=Column(String)
+   oldAddress=Column(String)
+   newAddress=Column(String)
+   action=Column(String)
+   newName=Column(String)
+
 
 class Pickup(Base):
 
@@ -17,6 +32,10 @@ class Pickup(Base):
    client_id = Column(Integer, ForeignKey('Client.client_id'))
    product=Column(String)
    updated=Column(Boolean)
+   dollars=Column(Integer)
+   name=Column(String)
+   address=Column(String)
+   city_state=Column(String)
 
 class Client(Base):
 
